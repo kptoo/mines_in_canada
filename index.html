@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Top 100 Exploration Projects</title>
+  <link rel="stylesheet" href="https://js.arcgis.com/4.24/esri/themes/light/main.css">
+  <script src="https://js.arcgis.com/4.24/"></script>
+  <style>
+    html, body, #viewDiv {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+    }
+
+    #layerListContainer {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 999;
+      background-color: #fff;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 10px;
+      display: none; /* Initially hidden */
+    }
+
+    #showHideLayers {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
+      background-color: #0079c1;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      padding: 10px;
+      cursor: pointer;
+    }
+
+    /* Add styles for the attribute table */
+    #attributeTable {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 1000;
+      background-color: #fff;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 10px;
+      display: none; /* Initially hidden */
+      max-height: 200px; /* Fixed maximum height */
+      overflow-y: auto;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 4px; /* Reduce padding */
+      font-size: 12px; /* Smaller font size */
+      text-align: left;
+    }
+
+    /* Set table to be scrollable both horizontally and vertically */
+    #table {
+      width: 100%;
+    }
+
+    #tableBody {
+      max-height: 150px; /* Adjust the maximum height as needed */
+      overflow-y: auto;
+      overflow-x: auto; /* Add this line for horizontal scrolling */
+    }
+
+    /* Sticky headers */
+    #table thead {
+      position: sticky;
+      top: 0;
+      background-color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div id="viewDiv"></div>
+  <button id="showHideLayers">Show Layer List</button>
+  <div id="layerListContainer">
+    <div id="layerList"></div>
+  </div>
+  
+  <!-- Add an attribute table container -->
+  <div id="attributeTable">
+    <table id="table">
+      <thead>
+        <tr id="tableHeader"></tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+  
+  <!-- Add a div to display the value on hovering -->
+  <div id="displayFieldElement" style="position: absolute; top: 10px; left: 10px; background-color: white; padding: 5px;"></div>
+
+  <script>
+    require([
+      "esri/Map",
+      "esri/views/MapView",
+      "esri/layers/FeatureLayer",
+      "esri/widgets/LayerList",
+      "esri/PopupTemplate",
+    ], function (Map, MapView, FeatureLayer, LayerList, PopupTemplate) {
+      var map = new Map({
+        basemap: "streets"
+      });
+
+      var view = new MapView({
+        container: "viewDiv",
+        map: map,
+        center: [-98, 60],
+        zoom: 3
+      });
+
+      var layersInfo = [
+      {
+        url: "https://maps-cartes.services.geo.ca/server_serveur/rest/services/NRCan/900A_and_top_100_en/MapServer/0",
+        title: "Top 100 Exploration Projects",
+        displayField: "project_name",
+        fields: ["displayField2", "field2_additional"],
+      },
+      {
+        url: "https://maps-cartes.services.geo.ca/server_serveur/rest/services/NRCan/900A_and_top_100_en/MapServer/1",
+        title: "900A",
+        displayField: "displayField2",
+        fields: ["displayField2", "field2_additional"],
+      },
+      {
+        url: "https://maps-cartes.services.geo.ca/server_serveur/rest/services/NRCan/900A_and_top_100_en/MapServer/2",
+        title: "Oil and Gas",
+        displayField: "minesite_en",
+        fields: ["province_en", "minesite_en", "product_en", "type_en", "latitude", "longitude", "OBJECTID"],
+      },
+      {
+          url: "https://maps-cartes.services.geo.ca/server_serveur/rest/services/NRCan/900A_and_top_100_en/MapServer/3",
+          title: "Producing Mines",
+          displayField: "displayField3",
+        },
+        {
+          url: "https://maps-cartes.services.geo.ca/server_serveur/rest/services/NRCan/900A_and_top_100_en/MapServer/4",
+          title: "Metal mines",
+          displayField: "operation_name_en",
+          fields: ["operation_group_en", "province_en", "operation_name_en", "operator_owners_en", "facilities_code_en_spelt", "commodity_group_en_spelt", "commodity_en_spelt", "OBJECTID"],
+        },
+        {
+          url: "https://maps-cartes.services.geo.ca/server_serveur/rest/services/NRCan/900A_and_top_100_en/MapServer/5",
+          title: "Nonmetal mines",
+          displayField: "operation_name_en",
+          fields: ["operation_group_en", "province_en", "operation_name_en", "operator_owners_en", "facilities_code_en_spelt", "commodity_group_en_spelt", "commodity_en_spelt", "OBJECTID"],
+        },
+        {
+          url: "https://maps-cartes.services.geo.ca/server_serveur/rest/services/NRCan/900A_and_top_100_en/MapServer/6",
+          title: "Coal mines",
+          displayField: "operation_name_en",
+          fields: ["operation_group_en", "province_en", "operation_name_en", "operator_owners_en", "facilities_code_en_spelt", "commodity_group_en_spelt", "commodity_en_spelt", "OBJECTID"],
+        },
+        {
+          url: "https://maps-cartes.services.geo.ca/server_serveur/rest/services/NRCan/900A_and_top_100_en/MapServer/7",
+          title: "Oil sands mines",
+          displayField: "operation_name_en",
+          fields: ["operation_group_en", "province_en", "operation_name_en", "operator_owners_en", "facilities_code_en_spelt", "commodity_group_en_spelt", "commodity_en_spelt", "OBJECTID"],
+        },
+        {
+          url: "https://maps-cartes.services.geo.ca/server_serveur/rest/services/NRCan/900A_and_top_100_en/MapServer/8",
+          title: "Metallurgical Works",
+          displayField: "displayField8",
+        },
+        {
+          url: "https://maps-cartes.services.geo.ca/server_serveur/rest/services/NRCan/900A_and_top_100_en/MapServer/9",
+          title: "Smelters and refineries",
+          displayField: "operation_en",
+          fields: ["operation_type_en", "province_en", "operation_en", "operator_owners_en", "facilities_code_en_spelt", "commodity_group_en_spelt", "commodity_en_spelt", "OBJECTID"],
+        },
+        {
+          url: "https://maps-cartes.services.geo.ca/server_serveur/rest/services/NRCan/900A_and_top_100_en/MapServer/10",
+          title: "Steel mills",
+          displayField: "operation_en",
+          fields: ["operation_type_en", "province_en", "operation_en", "operator_owners_en", "facilities_code_en_spelt", "commodity_group_en_spelt", "commodity_en_spelt", "OBJECTID"],
+        },
+        {
+          url: "https://maps-cartes.services.geo.ca/server_serveur/rest/services/NRCan/900A_and_top_100_en/MapServer/11",
+          title: "Ferroalloy plants",
+          displayField: "operation_en",
+          fields: ["operation_type_en", "province_en", "operation_en", "operator_owners_en", "facilities_code_en_spelt", "commodity_group_en_spelt", "commodity_en_spelt", "OBJECTID"],
+        },
+        {
+          url: "https://maps-cartes.services.geo.ca/server_serveur/rest/services/NRCan/900A_and_top_100_en/MapServer/12",
+          title: "Automobile shredders",
+          displayField: "operation_en",
+          fields: ["operation_type_en", "province_en", "operation_en", "operator_owners_en", "facilities_code_en_spelt", "commodity_group_en_spelt", "commodity_en_spelt", "OBJECTID"],
+        }
+      ];
+
+      var layers = layersInfo.map(function (layerInfo) {
+        return new FeatureLayer({
+          url: layerInfo.url,
+          title: layerInfo.title,
+          outFields: ["*"],
+          popupTemplate: new PopupTemplate({
+            title: "{" + layerInfo.displayField + "}",
+            content: createPopupContent(layerInfo.fields)
+          })
+        });
+      });
+
+      map.addMany(layers);
+
+      var showHideLayersButton = document.getElementById("showHideLayers");
+      var layerListContainer = document.getElementById("layerListContainer");
+      // Toggle the Layer List visibility when clicking the "Show Layer List" button
+      showHideLayersButton.addEventListener("click", function () {
+        if (layerListContainer.style.display === "none") {
+          layerListContainer.style.display = "block";
+        } else {
+          layerListContainer.style.display = "none";
+        }
+      });
+
+      // Initialize Layer List widget
+      var layerList = new LayerList({
+        view: view,
+        listItemCreatedFunction: function (event) {
+          const item = event.item;
+          // Create a custom action to show the attribute table
+          item.actionsSections = [
+            [
+              {
+                title: "Show Attribute Table",
+                className: "esri-icon-table",
+                id: "show-attributes"
+              }
+            ]
+          ];
+        }
+      });
+
+      // Add the Layer List widget to the layerListContainer
+      layerList.container = "layerList";
+
+      layerList.on("trigger-action", function (event) {
+        if (event.action.id === "show-attributes") {
+          var layerTitle = event.item.title;
+          var layer = layers.find(function (layer) {
+            return layer.title === layerTitle;
+          });
+
+          if (layer) {
+            // Query features from the layer
+            layer.queryFeatures().then(function (result) {
+              if (result.features.length > 0) {
+                var attributesList = result.features.map(function(feature) {
+                  return feature.attributes;
+                });
+                displayAttributeTable(layerTitle, attributesList, layer.fields);
+              }
+            });
+          }
+        }
+      });
+
+      view.when(function () {
+        var hoverTimeout; // Define a timeout variable
+
+        // Modify the pointer-move event listener to display the display field value directly on hovering
+        view.on("pointer-move", function (event) {
+          clearTimeout(hoverTimeout);
+          hoverTimeout = setTimeout(function () {
+            view.hitTest(event).then(function (response) {
+              if (response.results.length > 0) {
+                var feature = response.results[0].graphic;
+                var layerTitle = feature.layer.title;
+                var displayField = feature.attributes[feature.layer.displayField];
+                displayDisplayField(layerTitle, displayField);
+              }
+            });
+          }, 300); // Delay for 300 milliseconds before displaying display field
+        });
+
+        view.on("click", function (event) {
+          view.hitTest(event).then(function (response) {
+            if (response.results.length > 0) {
+              var feature = response.results[0].graphic;
+              if (feature.layer) {
+                var layerTitle = feature.layer.title;
+                var attributes = feature.attributes;
+                displayAttributeTable(layerTitle, [attributes], feature.layer.fields);
+              }
+            }
+          });
+        });
+      });
+
+      function createPopupContent(fields) {
+        return function (feature) {
+          var content = "<table>";
+          content += "<tbody>";
+
+          fields.forEach(function (field) {
+            if (field.name !== "Shape") {
+              // Exclude the "Shape" field
+              content += "<tr>";
+              content += "<td><strong>" + field.alias + ":</strong></td>";
+              content += "<td>" + feature.attributes[field.name] + "</td>";
+              content += "</tr>";
+            }
+          });
+
+          content += "</tbody></table>";
+
+          return content;
+        };
+      }
+
+      // Function to display the attribute table
+      function displayAttributeTable(layerTitle, attributesList, fields) {
+        var tableHeader = document.getElementById("tableHeader");
+        var tableBody = document.getElementById("tableBody");
+
+        tableHeader.innerHTML = "";
+        tableBody.innerHTML = "";
+
+        var contentHeader = "";
+        var contentBody = "";
+
+        fields.forEach(function (field) {
+          if (field.name !== "Shape") {
+            // Exclude the "Shape" field
+            contentHeader += "<th>" + field.alias + "</th>";
+          }
+        });
+
+        attributesList.forEach(function (attributes) {
+          contentBody += "<tr>";
+
+          fields.forEach(function (field) {
+            if (field.name !== "Shape") {
+              // Exclude the "Shape" field
+              contentBody += "<td>" + attributes[field.name] + "</td>";
+            }
+          });
+
+          contentBody += "</tr>";
+        });
+
+        tableHeader.innerHTML = contentHeader;
+        tableBody.innerHTML = contentBody;
+
+        var attributeTable = document.getElementById("attributeTable");
+        attributeTable.style.display = "block";
+      }
+
+      // Function to display the display field value on hover
+      function displayDisplayField(layerTitle, displayField) {
+        var displayFieldElement = document.getElementById("displayFieldElement");
+        displayFieldElement.textContent = layerTitle + ": " + displayField;
+      }
+
+      // Add an event listener to close the displayFieldElement and attributeTable when clicking outside
+      document.addEventListener("click", function (event) {
+        var displayFieldElement = document.getElementById("displayFieldElement");
+        var attributeTable = document.getElementById("attributeTable");
+        
+        // Check if the click event target is not one of the elements you want to remain open
+        if (
+          event.target !== displayFieldElement &&
+          event.target !== attributeTable &&
+          !displayFieldElement.contains(event.target) &&
+          !attributeTable.contains(event.target)
+        ) {
+          // If the click event occurred outside of these elements, hide them
+          displayFieldElement.textContent = ""; // Hide the display field value
+          attributeTable.style.display = "none"; // Hide the attribute table
+        }
+      });
+    });
+  </script>
+</body>
+</html>
